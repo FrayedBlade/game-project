@@ -14,8 +14,10 @@
   (let [x (:x @player)
         y (:y @player)
         vy (:vy @player)]
-    (if (< y 400) (swap! player update :vy + 1) (swap! player assoc :vy 0))
+    (if (< y 400) (swap! player update :vy + 1) (do (swap! player assoc :y 400) (swap! player assoc :vy 0) ))
     (swap! player update :y + vy)
+
+    (if (q/key-pressed?) (swap! player assoc :vy -10))
     )
 
 
