@@ -8,6 +8,8 @@
 (def box-sizeX 50)
 (def box-sizeY 50)
 
+(def obstacle-size screen-sizeX)
+
 (defn setup []
   ; Set frame rate to 30 frames per second.
   (q/frame-rate 60)
@@ -47,7 +49,29 @@
     )
   (let [x (:x @obstacle)
         y (:y @obstacle)]
-    (swap! obstacle update :x - 2)))                        ;obstacle moving
+    (swap! obstacle update :x - 2))       ;obstacle moving
+
+  (let [x (:x @player)
+        y (:y @player)
+        ox (:x @obstacle)
+        oy (:y @obstacle)]
+    (if (or
+          (and
+            (> (+ x box-sizeX) ox)
+            (> (+ y box-sizeY) oy)
+            (< x (+ ox box-sizeY))
+            )
+          (and
+            (> (+ x box-sizeX) ox)
+            (< y (- oy 200))
+            (< x (+ ox box-sizeY))))
+      (do (q/fill 0)                                        ;set text color
+          (q/text-size 100)                                 ;set text size
+          (q/text-align :center :center)                    ;align text horizontal and vertical
+          (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2)) ;text
+          )))
+
+  )
 
 
 
@@ -62,13 +86,13 @@
   (let [x (:x @obstacle)
         y (:y @obstacle)]
     (q/fill 100)
-    (q/rect x (- y 200) box-sizeX box-sizeY)
-    (q/rect x y box-sizeX box-sizeY)))
+    (q/rect x (- y obstacle-size 200) box-sizeX obstacle-size)
+    (q/rect x y box-sizeX obstacle-size)))
 
 
 
 (q/defsketch game-project
-             :title "You spin my circle right round"
+             :title "Game"
              :size [screen-sizeX screen-sizeY]
              ; setup function called only once, during sketch initialization.
              :setup setup
