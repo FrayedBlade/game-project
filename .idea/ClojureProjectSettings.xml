@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ClojureProjectSettings">
+    <option name="replScopeMapping">
+      <list>
+        <SerialisedReplScopeSetting>
+          <option name="replName" value="REPL for game-project" />
+          <option name="serialisedScope" value="file:file:///home/user/Documents/Clojure/game-project/src/game_project/core.clj" />
+        </SerialisedReplScopeSetting>
+      </list>
+    </option>
+  </component>
+</project>

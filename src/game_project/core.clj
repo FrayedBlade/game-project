@@ -25,6 +25,8 @@
     (if (> y (- screen-sizeY box-sizeY 1))
       (do (swap! player assoc :vy 0)
           (swap! player assoc :y (- screen-sizeY box-sizeY))
+          (q/fill 0)
+          (q/text-size 100)
           (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2))
           )
       (do (swap! player update :vy + 1)))
@@ -41,13 +43,8 @@
     (update-state)
 
     (let [x (:x @player)
-          y (:y @player)
-          vy (:vy @player)]
-      (if (> y (- screen-sizeY box-sizeY 1))
-        (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2))))
-
-    (let [x (:x @player)
           y (:y @player)]
+      (q/fill 200)
       (q/rect x y box-sizeX box-sizeY))))
 
 
