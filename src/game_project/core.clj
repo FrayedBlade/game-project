@@ -15,9 +15,14 @@
 (def player (atom {:x 100 :y 100}))
 
 (defn update-state [state]
-  ; Update sketch state by changing circle color and position.
-  {:color (mod (+ (:color state) 0.7) 255)
-   :angle (+ (:angle state) 0.1)})
+   ; Update sketch state by changing circle color and position.
+   {:color (mod (+ (:color state) 0.7) 255)
+    :angle (+ (:angle state) 0.1)}
+  (let [x (:x @player)
+        y (:y @player)]
+    (if (> x 400) (+ x 5))))
+
+
 
 (defn draw-state [state]
   ; Clear the sketch by filling it with light-grey color.
