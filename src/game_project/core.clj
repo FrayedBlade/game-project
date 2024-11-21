@@ -27,6 +27,7 @@
           (swap! player assoc :y (- screen-sizeY box-sizeY))
           (q/fill 0)
           (q/text-size 100)
+          (q/text-align :center :center)
           (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2))
           )
       (do (swap! player update :vy + 1)))
