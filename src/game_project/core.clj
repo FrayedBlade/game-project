@@ -20,7 +20,7 @@
     :angle (+ (:angle state) 0.1)}
   (let [x (:x @player)
         y (:y @player)]
-    (if (> x 400) (+ x 5))))
+    (if (< x 400) (swap! player update :x + 5))))
 
 
 
