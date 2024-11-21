@@ -8,23 +8,26 @@
   ; Set color mode to HSB (HSV) instead of default RGB.
   (q/color-mode :hsb))
 
-(def player (atom {:x 100 :y 100}))
+(def player (atom {:x 100 :y 100 :vx 0 :vy 0}))
 
 (defn update-state []
   (let [x (:x @player)
-        y (:y @player)]
-    (if (< x 400) (swap! player update :x + 5))))
+        y (:y @player)
+        vy (:vy @player)]
+    (if (< y 400) (swap! player update :vy + 1) (swap! player assoc :vy 0))
+    (swap! player update :y + vy)
+    )
 
 
 
-(defn draw-state []
-  ; Clear the sketch by filling it with light-grey color.
-  (q/background 240)
-  (update-state)
+  (defn draw-state []
+    ; Clear the sketch by filling it with light-grey color.
+    (q/background 240)
+    (update-state)
 
-  (let [x (:x @player)
-        y (:y @player)]
-    (q/rect x y 100 100)))
+    (let [x (:x @player)
+          y (:y @player)]
+      (q/rect x y 100 100))))
 
 
 (q/defsketch game-project
