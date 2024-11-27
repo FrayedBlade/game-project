@@ -17,9 +17,17 @@
   (q/color-mode :hsb))
 
 (def player (atom {:x (/ screen-sizeX 3) :y 100 :vx 0 :vy 0}))
-(def obstacle (atom {:x (+ screen-sizeX box-sizeX)  :y (/ screen-sizeY 2)}))
+(def obstacle (atom {:x (+ screen-sizeX box-sizeX) :y (/ screen-sizeY 2)}))
+(def obstacles (atom []))
+
+
 
 (def key-pressed-trigger (atom true))
+(def game-over (atom false))
+
+
+(defn random-range [min max]
+  (+ min (rand-int (- max min 1))))
 
 (defn update-state []
   (let [x (:x @player)
@@ -39,19 +47,28 @@
           (swap! player assoc :y 0)))
     (swap! player update :y + vy)
 
-    (if (and @key-pressed-trigger (q/key-pressed?) )
+    (if (and @key-pressed-trigger (q/key-pressed?))
       (do
         (swap! player assoc :vy -7)
-        (reset! key-pressed-trigger false)) )      ;jump
-    (if (and  (not @key-pressed-trigger) (not (q/key-pressed?)) )
+        (reset! key-pressed-trigger false)))                ;jump
+    (if (and (not @key-pressed-trigger) (not (q/key-pressed?)))
       (do
-        (reset! key-pressed-trigger true)) )
+        (reset! key-pressed-trigger true)))
     )
   (let [x (:x @obstacle)
         y (:y @obstacle)]
-    (swap! obstacle update :x - 2))       ;obstacle moving
+    (if (not @game-over)
+      (swap! obstacle update :x - 2)))                      ;obstacle moving
 
-  (let [x (:x @player)
+  (for [[k v] @obstacles]
+    (if (not @game-over)
+      ;(swap! obstacleX update :x - 2 )
+
+      (println (str k ": " v))
+      )
+    )
+
+  (let [x (:x @player)                                      ;Collision detection
         y (:y @player)
         ox (:x @obstacle)
         oy (:y @obstacle)]
@@ -69,7 +86,19 @@
           (q/text-size 100)                                 ;set text size
           (q/text-align :center :center)                    ;align text horizontal and vertical
           (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2)) ;text
+          (swap! player assoc :vy 0)
+          (swap! player assoc :vx 0)
+          (reset! game-over true)
           )))
+
+  (if (empty? @obstacles)
+    (do (swap! obstacles conj {:x (+ screen-sizeX box-sizeX -500) :y (random-range 0 screen-sizeY)})
+        )
+    (do (if (< (:x (last @obstacles) (* screen-sizeX 0.8)))
+          (+ 1 1)
+          ;(swap! obstacles conj {:x (+ screen-sizeX box-sizeX) :y (random-range 0 screen-sizeY)})
+          )))
+  ;(println @obstacles)
 
   )
 
@@ -87,7 +116,20 @@
         y (:y @obstacle)]
     (q/fill 100)
     (q/rect x (- y obstacle-size 200) box-sizeX obstacle-size)
-    (q/rect x y box-sizeX obstacle-size)))
+    (q/rect x y box-sizeX obstacle-size))
+
+  (for [num (range 0 2)]                                    ;[num (range 1 (count @obstacles))]
+    (let [x (:x (nth @obstacles num))
+          y (:y (nth @obstacles num))]
+      (println "test")
+      (q/fill 100)
+      (q/rect x (- y obstacle-size 200) box-sizeX obstacle-size)
+      (q/rect x y box-sizeX obstacle-size)))
+
+
+
+  (println (nth @obstacles 0))
+  )
 
 
 
