@@ -116,7 +116,7 @@
               )
             (and
               (> (+ x box-sizeX) ox)
-              (< y (- oy obstacle-size))
+              (< y (- oy obstacle-gap))
               (< x (+ ox box-sizeY))))
         (do (q/fill 0)                                        ;set text color
             (q/text-size 100)                                 ;set text size
