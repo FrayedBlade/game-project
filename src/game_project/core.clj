@@ -14,7 +14,7 @@
 (def obstacle-density 200)
 (def obstacle-speed 4)
 
-(def obstacle-sizeX 30)
+(def obstacle-sizeX 50)
 (def obstacle-sizeY (max screen-sizeY screen-sizeX))
 
 (def player (atom {:x (/ screen-sizeX 3) :y (/ screen-sizeY 3) :vx 0 :vy 0}))
@@ -37,6 +37,19 @@
 (defn random-range [min max]
   (+ min (rand-int (- max min 1))))
 
+(defn reset-game []
+  (do (reset! game-over false)
+      (let [x (:x @player)
+            y (:y @player)]
+        (swap! player assoc :x (/ screen-sizeX 3))
+        (swap! player assoc :y (/ screen-sizeY 3))
+            )
+      (swap! obstacles
+             #(filter
+                (fn [param1]
+                  (>= (:x param1) (+ 600 box-sizeX))) %))         ;deletes the obstacle if x lover than {0 - box-sizeX}
+      ) )
+
 (defn update-state []
   (let [x (:x @player)
         y (:y @player)
@@ -56,7 +69,7 @@
 
     (if (and @key-pressed-trigger (q/key-pressed?))
       (do
-        (swap! player assoc :vy (- 0 jump-strength))                         ;jump
+        (swap! player assoc :vy (- 0 jump-strength))        ;jump
         (reset! key-pressed-trigger false)))
     (if (and (not @key-pressed-trigger) (not (q/key-pressed?)))
       (do
@@ -71,17 +84,29 @@
 
 
 
-  (if (not @game-over)
-    (swap! obstacles #(mapv                                   ;obstacles moving
-                      (fn [param1]
-                        (update param1 :x - obstacle-speed)) %)))
 
-  (if (and (game-over) ()))
+  (if (not @game-over)
+    (swap! obstacles #(mapv                                 ;obstacles moving
+                        (fn [param1]
+                          (update param1 :x - obstacle-speed)) %))
+
+    )
+
+
+  (if (= @game-over true)
+    (do (let [key (q/key-as-keyword)]  ; Get the key that was pressed
+          (when (#{:r :right :up :down} key)  ; Check if it's an arrow key
+            (case key
+              :r (do (reset-game)
+                     (println "W")))
+            )) )
+    (do ))
+
 
 
 
   (doseq [m @obstacles]
-    (let [x (:x @player)                                      ;Collision detection
+    (let [x (:x @player)                                    ;Collision detection
           y (:y @player)
           ox (:x m)
           oy (:y m)]
@@ -95,9 +120,9 @@
               (> (+ x box-sizeX) ox)
               (< y (- oy obstacle-gap))
               (< x (+ ox obstacle-sizeX))))
-        (do (q/fill 0)                                        ;set text color
-            (q/text-size 100)                                 ;set text size
-            (q/text-align :center :center)                    ;align text horizontal and vertical
+        (do (q/fill 0)                                      ;set text color
+            (q/text-size 100)                               ;set text size
+            (q/text-align :center :center)                  ;align text horizontal and vertical
             (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2)) ;text
             (swap! player assoc :vy 0)
             (swap! player assoc :vx 0)
@@ -113,7 +138,7 @@
                                :y (random-range obstacle-gap
                                                 screen-sizeY)})
         )
-    (do (if (< (:x (last @obstacles)) (- screen-sizeX obstacle-density ))
+    (do (if (< (:x (last @obstacles)) (- screen-sizeX obstacle-density))
           (do
             (swap! obstacles conj {:x (+ screen-sizeX box-sizeX)
                                    :y (random-range obstacle-gap
@@ -124,7 +149,7 @@
   (swap! obstacles
          #(filter
             (fn [param1]
-              (>= (:x param1) (- 0 box-sizeX))) %)) ;deletes the obstacle if x lover than {0 - box-sizeX}
+              (>= (:x param1) (- 0 box-sizeX))) %))         ;deletes the obstacle if x lover than {0 - box-sizeX}
 
 
 
@@ -153,8 +178,6 @@
       (q/rect x y obstacle-sizeX obstacle-sizeY))
     ;(println "Value of a: " (:x m) ", Value of b: " (:y m))
     )
-
-
 
   )
 
