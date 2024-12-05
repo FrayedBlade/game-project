@@ -20,6 +20,12 @@
 (def player (atom {:x (/ screen-sizeX 3) :y (/ screen-sizeY 3) :vx 0 :vy 0}))
 (def obstacles (atom []))
 
+(def key-pressed-trigger (atom true))
+(def game-over (atom false))
+
+(def score (atom 0))
+
+
 (defn setup []
   ; Set frame rate to 30 frames per second.
   (q/frame-rate 60)
@@ -27,18 +33,12 @@
   (q/color-mode :hsb))
 
 
-
-
-
-(def key-pressed-trigger (atom true))
-(def game-over (atom false))
-
-
 (defn random-range [min max]
   (+ min (rand-int (- max min 1))))
 
 (defn reset-game []
   (do (reset! game-over false)
+      (reset! score 0)
       (let [x (:x @player)
             y (:y @player)]
         (swap! player assoc :x (/ screen-sizeX 3))
@@ -47,7 +47,7 @@
       (swap! obstacles
              #(filter
                 (fn [param1]
-                  (>= (:x param1) (+ 600 box-sizeX))) %))         ;deletes the obstacle if x lover than {0 - box-sizeX}
+                  (>= (:x param1) (+ 600 box-sizeX))) %))         ;deletes the obstacle if x lover than {value}
       ) )
 
 (defn update-state []
@@ -77,12 +77,6 @@
     )
 
 
-  ;(let [x (:x @obstacle)
-  ;      y (:y @obstacle)]
-  ;  (if (not @game-over)
-  ;    (swap! obstacle update :x - 2)))                      ;obstacle moving
-
-
 
 
   (if (not @game-over)
@@ -98,7 +92,7 @@
           (when (#{:r :right :up :down} key)  ; Check if it's an arrow key
             (case key
               :r (do (reset-game)
-                     (println "W")))
+                     ))
             )) )
     (do ))
 
@@ -128,6 +122,12 @@
             (swap! player assoc :vx 0)
             (reset! game-over true)
             )))
+
+
+
+
+
+
     ;(println "Value of a: " (:x m) ", Value of b: " (:y m))
     )
 
@@ -150,6 +150,19 @@
          #(filter
             (fn [param1]
               (>= (:x param1) (- 0 box-sizeX))) %))         ;deletes the obstacle if x lover than {0 - box-sizeX}
+
+
+
+  (def filtered-obstacle
+    (first (filter #(> (:x %) (:x @player)) @obstacles)))
+  ;(println filtered-obstacle)
+
+  (if (< (:x filtered-obstacle) (+ (:x @player) 1))
+    (do
+      (swap! score + 1)))
+  ;(println @score)
+
+
 
 
 
@@ -178,6 +191,12 @@
       (q/rect x y obstacle-sizeX obstacle-sizeY))
     ;(println "Value of a: " (:x m) ", Value of b: " (:y m))
     )
+
+  (q/fill 0)                                      ;set text color
+  (q/text-size 100)                               ;set text size
+  (q/text-align :center :center)                  ;align text horizontal and vertical
+  (q/text (str @score) (/ screen-sizeX 2) (/ screen-sizeY 7)) ;text
+
 
   )
 
