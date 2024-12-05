@@ -18,6 +18,7 @@
 (def obstacle-sizeY (max screen-sizeY screen-sizeX))
 
 (def player (atom {:x (/ screen-sizeX 3) :y (/ screen-sizeY 3) :vx 0 :vy 0}))
+(def player-rotation (atom 0))
 (def obstacles (atom []))
 
 (def key-pressed-trigger (atom true))
@@ -30,7 +31,10 @@
   ; Set frame rate to 30 frames per second.
   (q/frame-rate 60)
   ; Set color mode to HSB (HSV) instead of default RGB.
-  (q/color-mode :hsb))
+  (q/color-mode :hsb)
+  (let [; create url to load image 100x100
+        url "bird.png"]
+    (q/set-state! :image (q/load-image url))))
 
 
 (defn random-range [min max]
@@ -164,6 +168,10 @@
 
 
 
+  ;(let [; create url to load image 100x100
+  ;      url "bird.png"]
+  ;  (q/set-state! :imagec (q/load-image url))
+  ;  (q/image :image 350 400))
 
 
 
@@ -180,7 +188,8 @@
   (let [x (:x @player)                                      ;player drawing
         y (:y @player)]
     (q/fill 200)
-    (q/rect x y box-sizeX box-sizeY))
+    ;(q/rect x y box-sizeX box-sizeY)
+    )
 
 
   (doseq [m @obstacles]                                     ;obstacle drawing
@@ -197,6 +206,14 @@
   (q/text-align :center :center)                  ;align text horizontal and vertical
   (q/text (str @score) (/ screen-sizeX 2) (/ screen-sizeY 7)) ;text
 
+
+  (let [im (q/state :image)]
+    ; check if image is loaded using function loaded?
+    (when (q/loaded? im)
+      (q/rotate 0.5)
+      (q/image-mode :corners)
+      (q/image im (:x @player) (:y @player)(+(:x @player) box-sizeX) (+(:y @player) box-sizeX))
+      ))
 
   )
 
