@@ -23,6 +23,9 @@
 
 (def key-pressed-trigger (atom true))
 (def game-over (atom false))
+(def menu-active (atom true))
+(def menu-time (atom 0))
+(def menu-bob-amplitude 10)
 
 (def score (atom 0))
 
@@ -41,181 +44,137 @@
   (+ min (rand-int (- max min 1))))
 
 (defn reset-game []
-  (do (reset! game-over false)
-      (reset! score 0)
-      (let [x (:x @player)
-            y (:y @player)]
-        (swap! player assoc :x (/ screen-sizeX 3))
-        (swap! player assoc :y (/ screen-sizeY 3))
-            )
-      (swap! obstacles
-             #(filter
-                (fn [param1]
-                  (>= (:x param1) (+ 600 box-sizeX))) %))         ;deletes the obstacle if x lover than {value}
-      ) )
+  (reset! game-over false)
+  (reset! score 0)
+  (reset! key-pressed-trigger true)
+  (reset! player {:x (/ screen-sizeX 3) :y (/ screen-sizeY 3) :vx 0 :vy 0})
+  (reset! obstacles [])
+  (reset! menu-time 0))
 
-(defn update-state []
+(defn clamp-to-top []
+  (when (< (:y @player) 0)
+    (swap! player assoc :y 0 :vy 0)))
+
+(defn handle-menu-state []
+  (swap! menu-time + 0.1)
+  (let [base (/ screen-sizeY 3)
+        bob (+ base (* menu-bob-amplitude (Math/sin @menu-time)))]
+    (swap! player assoc :y bob :vy 0))
+  (when (q/key-pressed?)
+    (let [key (q/key-as-keyword)]
+      (cond
+        (= key :space) (do (reset-game)
+                           (reset! menu-active false))
+        (= key :escape) (q/exit)))))
+
+(defn handle-game-state []
   (let [x (:x @player)
         y (:y @player)
         vy (:vy @player)]
     (if (> (+ y box-sizeY vy) screen-sizeY)                 ;Gravity
       (do (swap! player assoc :vy 0)
           (swap! player assoc :y (- screen-sizeY box-sizeY -1))
-          (q/fill 0)                                        ;set text color
-          (q/text-size 100)                                 ;set text size
-          (q/text-align :center :center)                    ;align text horizontal and vertical
-          (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2)) ;text
-          )
-      (do (swap! player update :vy + 0.7)))                 ;Gravity Strength
-
+          (q/fill 0)
+          (q/text-size 100)
+          (q/text-align :center :center)
+          (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2)))
+      (swap! player update :vy + 0.7))
 
     (swap! player update :y + vy)                           ;player movement
-    (when (< (:y @player) 0)                                  ;keep bird from leaving top
-      (swap! player assoc :y 0 :vy 0))
+    (clamp-to-top)
 
-    (if (and @key-pressed-trigger (q/key-pressed?))
-      (do
-        (swap! player assoc :vy (- 0 jump-strength))        ;jump
-        (reset! key-pressed-trigger false)))
-    (if (and (not @key-pressed-trigger) (not (q/key-pressed?)))
-      (do
-        (reset! key-pressed-trigger true)))
-    )
+    (when (and @key-pressed-trigger (q/key-pressed?))
+      (swap! player assoc :vy (- 0 jump-strength))
+      (reset! key-pressed-trigger false))
+    (when (and (not @key-pressed-trigger) (not (q/key-pressed?)))
+      (reset! key-pressed-trigger true)))
 
 
+  (when (not @game-over)
+    (swap! obstacles #(mapv (fn [param1] (update param1 :x - obstacle-speed)) %)))
 
-
-  (if (not @game-over)
-    (swap! obstacles #(mapv                                 ;obstacles moving
-                        (fn [param1]
-                          (update param1 :x - obstacle-speed)) %))
-
-    )
-
-
-  (if (= @game-over true)
-    (do (let [key (q/key-as-keyword)]  ; Get the key that was pressed
-          (when (#{:r :right :up :down} key)  ; Check if it's an arrow key
-            (case key
-              :r (do (reset-game)
-                     ))
-            )) )
-    (do ))
-
-
-
+  (when (= @game-over true)
+    (let [key (q/key-as-keyword)]
+      (when (#{:r :right :up :down} key)
+        (case key
+          :r (reset-game)
+          nil))))
 
   (doseq [m @obstacles]
-    (let [x (:x @player)                                    ;Collision detection
+    (let [x (:x @player)
           y (:y @player)
           ox (:x m)
           oy (:y m)]
-      (if (or
-            (and
-              (> (+ x box-sizeX) ox)
-              (> (+ y box-sizeY) oy)
-              (< x (+ ox obstacle-sizeX))
-              )
-            (and
-              (> (+ x box-sizeX) ox)
-              (< y (- oy obstacle-gap))
-              (< x (+ ox obstacle-sizeX))))
-        (do (q/fill 0)                                      ;set text color
-            (q/text-size 100)                               ;set text size
-            (q/text-align :center :center)                  ;align text horizontal and vertical
-            (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2)) ;text
-            (swap! player assoc :vy 0)
-            (swap! player assoc :vx 0)
-            (reset! game-over true)
-            )))
+      (when (or (and (> (+ x box-sizeX) ox)
+                     (> (+ y box-sizeY) oy)
+                     (< x (+ ox obstacle-sizeX)))
+                (and (> (+ x box-sizeX) ox)
+                     (< y (- oy obstacle-gap))
+                     (< x (+ ox obstacle-sizeX))))
+        (q/fill 0)
+        (q/text-size 100)
+        (q/text-align :center :center)
+        (q/text "Game over!" (/ screen-sizeX 2) (/ screen-sizeY 2))
+        (swap! player assoc :vy 0 :vx 0)
+        (reset! game-over true))))
 
+  (when (empty? @obstacles)
+    (swap! obstacles conj {:x (+ screen-sizeX box-sizeX)
+                           :y (random-range obstacle-gap screen-sizeY)}))
+  (when (and (not (empty? @obstacles))
+             (< (:x (last @obstacles)) (- screen-sizeX obstacle-density)))
+    (swap! obstacles conj {:x (+ screen-sizeX box-sizeX)
+                           :y (random-range obstacle-gap screen-sizeY)}))
 
+  (swap! obstacles #(filter (fn [param1] (>= (:x param1) (- 0 box-sizeX))) %))
 
-
-
-
-    ;(println "Value of a: " (:x m) ", Value of b: " (:y m))
-    )
-
-
-
-  (if (empty? @obstacles)                                   ;spawning of obstacles
-    (do (swap! obstacles conj {:x (+ screen-sizeX box-sizeX)
-                               :y (random-range obstacle-gap
-                                                screen-sizeY)})
-        )
-    (do (if (< (:x (last @obstacles)) (- screen-sizeX obstacle-density))
-          (do
-            (swap! obstacles conj {:x (+ screen-sizeX box-sizeX)
-                                   :y (random-range obstacle-gap
-                                                    screen-sizeY)})
-            )
-          )))
-
-  (swap! obstacles
-         #(filter
-            (fn [param1]
-              (>= (:x param1) (- 0 box-sizeX))) %))         ;deletes the obstacle if x lover than {0 - box-sizeX}
-
-
-
-  (def filtered-obstacle
-    (first (filter #(> (:x %) (:x @player)) @obstacles)))
-  ;(println filtered-obstacle)
-
-  (if (< (:x filtered-obstacle) (+ (:x @player) 1))
-    (do
-      (swap! score + 1)))
-  ;(println @score)
-
-
+  (def filtered-obstacle (first (filter #(> (:x %) (:x @player)) @obstacles)))
+  (when (and filtered-obstacle (< (:x filtered-obstacle) (+ (:x @player) 1)))
+    (swap! score + 1))
 
   (reset! player-rotation 0)
 
+  (when (= (q/key-as-keyword) :escape)
+    (q/exit)))
 
-
-
-  ;(doseq [m v]
-  ;  (println "Value of a: " (:a m) ", Value of b: " (:b m)))
-  )
-
+(defn update-state []
+  (if @menu-active
+    (handle-menu-state)
+    (handle-game-state)))
 
 
 (defn draw-state []
-  ; Clear the sketch by filling it with light-grey color.
   (q/background 240)
   (update-state)
 
-  (let [x (:x @player)                                      ;player drawing
-        y (:y @player)]
-    (q/fill 200))
-
-
-
-  (doseq [m @obstacles]                                     ;obstacle drawing
+  (doseq [m @obstacles]
     (let [x (:x m)
           y (:y m)]
       (q/fill 100)
       (q/rect x (- y obstacle-sizeY obstacle-gap) obstacle-sizeX obstacle-sizeY)
-      (q/rect x y obstacle-sizeX obstacle-sizeY))
-    ;(println "Value of a: " (:x m) ", Value of b: " (:y m))
-    )
+      (q/rect x y obstacle-sizeX obstacle-sizeY)))
 
-  (q/fill 0)                                      ;set text color
-  (q/text-size 100)                               ;set text size
-  (q/text-align :center :center)                  ;align text horizontal and vertical
-  (q/text (str @score) (/ screen-sizeX 2) (/ screen-sizeY 7)) ;text
-
+  (q/fill 0)
+  (q/text-size 100)
+  (q/text-align :center :center)
+  (q/text (str @score) (/ screen-sizeX 2) (/ screen-sizeY 7))
 
   (let [im (q/state :image)]
-    ; check if image is loaded using function loaded?
     (when (q/loaded? im)
-      (q/push-matrix)                                       ;limit image rotation to the sprite
+      (q/push-matrix)
       (q/image-mode :corners)
-      (q/image im (:x @player) (:y @player)(+(:x @player) box-sizeX) (+(:y @player) box-sizeX))
+      (q/image im (:x @player) (:y @player) (+ (:x @player) box-sizeX) (+ (:y @player) box-sizeX))
       (q/pop-matrix)))
 
-  )
+  (when @menu-active
+    (q/fill 0)
+    (q/text-align :center :center)
+    (q/text-size 80)
+    (q/text "Clojure Bird" (/ screen-sizeX 2) (/ screen-sizeY 3))
+    (q/text-size 40)
+    (q/text "Press Start (Space Bar)" (/ screen-sizeX 2) (+ (/ screen-sizeY 3) 80))
+    (q/text-size 30)
+    (q/text "Press Esc to Exit" (/ screen-sizeX 2) (+ (/ screen-sizeY 3) 130))))
 
 ; b1
 
@@ -225,18 +184,7 @@
   (q/defsketch game-project
                :title "Game"
                :size [screen-sizeX screen-sizeY]
-               ; setup function called only once, during sketch initialization.
                :setup setup
-               ; update-state is called on each iteration before draw-state.
                :update update-state
                :draw draw-state
-               :features [:keep-on-top]
-               ; This sketch uses functional-mode middleware.
-               ; Check quil wiki for more info about middlewares and particularly
-               ; fun-mode.
-               ;:middleware [m/fun-mode]
-               ))
-
-
-
-
+               :features [:keep-on-top]))
