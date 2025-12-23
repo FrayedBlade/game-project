@@ -70,6 +70,8 @@
 
 
     (swap! player update :y + vy)                           ;player movement
+    (when (< (:y @player) 0)                                  ;keep bird from leaving top
+      (swap! player assoc :y 0 :vy 0))
 
     (if (and @key-pressed-trigger (q/key-pressed?))
       (do
@@ -234,3 +236,7 @@
                ; fun-mode.
                ;:middleware [m/fun-mode]
                ))
+
+
+
+
