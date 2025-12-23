@@ -168,10 +168,8 @@
 
 
 
-  ;(let [; create url to load image 100x100
-  ;      url "bird.png"]
-  ;  (q/set-state! :imagec (q/load-image url))
-  ;  (q/image :image 350 400))
+  (swap! player-rotation + 0.01)
+
 
 
 
@@ -185,11 +183,16 @@
   ; Clear the sketch by filling it with light-grey color.
   (q/background 240)
   (update-state)
+
   (let [x (:x @player)                                      ;player drawing
         y (:y @player)]
     (q/fill 200)
-    ;(q/rect x y box-sizeX box-sizeY)
+
+    (q/translate (/ screen-sizeX 2) (/ screen-sizeY 7))
+    (q/rotate @player-rotation)
+    (q/rect x y box-sizeX box-sizeY)
     )
+
 
 
   (doseq [m @obstacles]                                     ;obstacle drawing
@@ -210,7 +213,7 @@
   (let [im (q/state :image)]
     ; check if image is loaded using function loaded?
     (when (q/loaded? im)
-      (q/rotate 0.5)
+      (q/rotate 0.1)
       (q/image-mode :corners)
       (q/image im (:x @player) (:y @player)(+(:x @player) box-sizeX) (+(:y @player) box-sizeX))
       ))
