@@ -8054,6 +8054,7 @@ clj꞉game-project.core꞉> 
 ; 	at clojure.lang.AFn.call(AFn.java:18)
 ; 	... 4 more
 ; ERROR: Unhandled REPL handler exception processing message {:op info, :ns game-project.core, :symbol im, :id 340, :session 2993c723-ea1e-42b4-94dd-519ae2021232}
+<<<<<<< HEAD
 ; java.util.concurrent.ExecutionException: java.lang.NullPointerException: Cannot invoke "clojure.lang.IFn.invoke(Object)" because the return value of "clojure.lang.Var.getRawRoot()" is null
 ; 	at java.base/java.util.concurrent.FutureTask.report(Unknown Source)
 ; 	at java.base/java.util.concurrent.FutureTask.get(Unknown Source)
@@ -10201,6 +10202,8 @@ clj꞉game-project.core꞉> 
 ; 	at clojure.lang.AFn.call(AFn.java:18)
 ; 	... 4 more
 ; ERROR: Unhandled REPL handler exception processing message {:op info, :ns game-project.core, :symbol :corners, :id 448, :session 2993c723-ea1e-42b4-94dd-519ae2021232}
+=======
+>>>>>>> 8b444d4b3e68ce4cb28e41f94a3c5b89a227f1aa
 ; java.util.concurrent.ExecutionException: java.lang.NullPointerException: Cannot invoke "clojure.lang.IFn.invoke(Object)" because the return value of "clojure.lang.Var.getRawRoot()" is null
 ; 	at java.base/java.util.concurrent.FutureTask.report(Unknown Source)
 ; 	at java.base/java.util.concurrent.FutureTask.get(Unknown Source)
