@@ -7,6 +7,7 @@
 
 (def box-sizeX 50)
 (def box-sizeY 50)
+(def hitbox-radius 20)                                     ;independent collision radius
 
 (def jump-strength 10)
 
@@ -54,6 +55,13 @@
 (defn clamp-to-top []
   (when (< (:y @player) 0)
     (swap! player assoc :y 0 :vy 0)))
+
+(defn circle-rect-collide? [cx cy r rx ry rw rh]
+  (let [closest-x (-> cx (max rx) (min (+ rx rw)))
+        closest-y (-> cy (max ry) (min (+ ry rh)))
+        dx (- cx closest-x)
+        dy (- cy closest-y)]
+    (<= (+ (* dx dx) (* dy dy)) (* r r))))
 
 (defn handle-menu-state []
   (swap! menu-time + 0.1)
@@ -104,13 +112,14 @@
     (let [x (:x @player)
           y (:y @player)
           ox (:x m)
-          oy (:y m)]
-      (when (or (and (> (+ x box-sizeX) ox)
-                     (> (+ y box-sizeY) oy)
-                     (< x (+ ox obstacle-sizeX)))
-                (and (> (+ x box-sizeX) ox)
-                     (< y (- oy obstacle-gap))
-                     (< x (+ ox obstacle-sizeX))))
+          oy (:y m)
+          cx (+ x (/ box-sizeX 2))                          ;circle center x
+          cy (+ y (/ box-sizeY 2))                          ;circle center y
+          r  hitbox-radius                                  ;decoupled circular hitbox radius
+          top-rect-y (- oy obstacle-sizeY obstacle-gap)
+          bottom-rect-y oy]
+      (when (or (circle-rect-collide? cx cy r ox top-rect-y obstacle-sizeX obstacle-sizeY)
+                (circle-rect-collide? cx cy r ox bottom-rect-y obstacle-sizeX obstacle-sizeY))
         (q/fill 0)
         (q/text-size 100)
         (q/text-align :center :center)
@@ -158,6 +167,11 @@
   (q/text-size 100)
   (q/text-align :center :center)
   (q/text (str @score) (/ screen-sizeX 2) (/ screen-sizeY 7))
+  (when @game-over
+    (q/fill 0)
+    (q/text-size 40)
+    (q/text-align :center :center)
+    (q/text "Press R to Restart" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 80)))
 
   (let [im (q/state :image)]
     (when (q/loaded? im)
