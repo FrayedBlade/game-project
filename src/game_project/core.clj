@@ -168,7 +168,7 @@
 
 
 
-  (swap! player-rotation + 0.01)
+  (reset! player-rotation 0)
 
 
 
@@ -188,10 +188,10 @@
         y (:y @player)]
     (q/fill 200)
 
+    (q/push-matrix)                                         ;isolate player transform so the rest of the scene doesn't rotate
     (q/translate (/ screen-sizeX 2) (/ screen-sizeY 7))
-    (q/rotate @player-rotation)
     (q/rect x y box-sizeX box-sizeY)
-    )
+    (q/pop-matrix))
 
 
 
@@ -213,10 +213,10 @@
   (let [im (q/state :image)]
     ; check if image is loaded using function loaded?
     (when (q/loaded? im)
-      (q/rotate 0.1)
+      (q/push-matrix)                                       ;limit image rotation to the sprite
       (q/image-mode :corners)
       (q/image im (:x @player) (:y @player)(+(:x @player) box-sizeX) (+(:y @player) box-sizeX))
-      ))
+      (q/pop-matrix)))
 
   )
 
