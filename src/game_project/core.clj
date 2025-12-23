@@ -186,12 +186,7 @@
 
   (let [x (:x @player)                                      ;player drawing
         y (:y @player)]
-    (q/fill 200)
-
-    (q/push-matrix)                                         ;isolate player transform so the rest of the scene doesn't rotate
-    (q/translate (/ screen-sizeX 2) (/ screen-sizeY 7))
-    (q/rect x y box-sizeX box-sizeY)
-    (q/pop-matrix))
+    (q/fill 200))
 
 
 
@@ -239,5 +234,3 @@
                ; fun-mode.
                ;:middleware [m/fun-mode]
                ))
-
-
