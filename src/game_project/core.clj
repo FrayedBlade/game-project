@@ -83,14 +83,21 @@
 (defn handle-name-input [key-event]
   (when key-event
     (let [{:keys [keyword raw key-code]} key-event
-          raw-char (when raw (char raw))
+          raw-code (when raw (int raw))
+          raw-char (when raw-code (char raw-code))
           left-ctrl? (or (= keyword :control)
                          (= key-code java.awt.event.KeyEvent/VK_CONTROL)
-                         (= raw java.awt.event.KeyEvent/VK_CONTROL))
+                         (= raw-code java.awt.event.KeyEvent/VK_CONTROL))
           alt-exit? (or (= keyword :alt)
                         (= key-code java.awt.event.KeyEvent/VK_ALT)
-                        (= raw java.awt.event.KeyEvent/VK_ALT))
-          enter? (or (= keyword :enter) (= keyword :return))]
+                        (= raw-code java.awt.event.KeyEvent/VK_ALT))
+          enter? (or (= keyword :enter) (= keyword :return))
+          backspace? (or (= keyword :backspace)
+                         (= key-code java.awt.event.KeyEvent/VK_BACK_SPACE)
+                         (= raw-code java.awt.event.KeyEvent/VK_BACK_SPACE)
+                         (= keyword :delete)
+                         (= key-code java.awt.event.KeyEvent/VK_DELETE)
+                         (= raw-code java.awt.event.KeyEvent/VK_DELETE))]
       (cond
         (or left-ctrl? enter?)
         (let [trimmed (-> @name-entry str/trim)]
@@ -106,7 +113,7 @@
             (reset! name-entry "")
             (reset! save-message "Save canceled"))
 
-        (= keyword :backspace)
+        backspace?
         (swap! name-entry #(if (seq %) (subs % 0 (dec (count %))) ""))
 
         (and raw-char (or (Character/isLetterOrDigit raw-char) (= raw-char \space)))
@@ -195,9 +202,11 @@
   (when (= @game-over true)
     (when (and key-event (= (:keyword key-event) :s) (not @saving-score?))
       (begin-save-flow))
-    (when (and key-event (#{:r :right :up :down} (:keyword key-event)) (not @saving-score?))
+    (when (and key-event (#{:r :right :up :down :m} (:keyword key-event)) (not @saving-score?))
       (case (:keyword key-event)
         :r (reset-game)
+        :m (do (reset-game)
+               (reset! menu-active true))
         nil)))
 
   (doseq [m @obstacles]
@@ -282,7 +291,8 @@
     (q/text-size 40)
     (q/text-align :center :center)
     (q/text "Press R to Restart" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 80))
-    (q/text "Press S to Save" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 120)))
+    (q/text "Press S to Save" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 120))
+    (q/text "Press M for Menu" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 160)))
 
   (let [im (q/state :image)]
     (when (q/loaded? im)
@@ -338,6 +348,21 @@
                :update update-state
                :draw draw-state
                :features [:keep-on-top]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
