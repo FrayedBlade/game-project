@@ -1,6 +1,10 @@
 (ns game-project.core
   (:require [quil.core :as q]
-            [quil.middleware :as m]))
+            [quil.middleware :as m]
+            [next.jdbc :as jdbc]
+            [next.jdbc.result-set :as rs]
+            [clojure.java.io :as io]
+            [clojure.string :as str]))
 
 (def screen-sizeX 1000)
 (def screen-sizeY 700)
@@ -30,12 +34,91 @@
 
 (def score (atom 0))
 
+(def leaderboard-open (atom false))
+(def leaderboard-data (atom []))
+(def saving-score? (atom false))
+(def name-entry (atom ""))
+(def save-message (atom nil))
+(def ui-key-ready (atom true))
+(def ignored-modifiers #{:shift :meta})
+
+(def db-file "resources/scores.db")
+(def datasource
+  (delay (let [url (str "jdbc:sqlite:" (.getPath (io/file db-file)))]
+           (jdbc/get-datasource {:jdbcUrl url}))))
+
+(defn ensure-db! []
+  (jdbc/execute! @datasource
+                 ["CREATE TABLE IF NOT EXISTS scores (\n                    id INTEGER PRIMARY KEY AUTOINCREMENT,\n                    name TEXT NOT NULL,\n                    score INTEGER NOT NULL,\n                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP\n                  )"]))
+
+(defn save-score! [player-name score-value]
+  (ensure-db!)
+  (jdbc/execute! @datasource ["INSERT INTO scores (name, score) VALUES (?, ?)" player-name score-value]))
+
+(defn load-top-scores []
+  (ensure-db!)
+  (jdbc/execute! @datasource
+                 ["SELECT name, score, created_at FROM scores ORDER BY score DESC, created_at ASC LIMIT 10"]
+                 {:builder-fn rs/as-unqualified-lower-maps}))
+
+(defn refresh-leaderboard! []
+  (reset! leaderboard-data (load-top-scores)))
+
+(defn poll-key []
+  (let [pressed? (q/key-pressed?)
+        keyword (when pressed? (q/key-as-keyword))]
+    (when-not pressed?
+      (reset! ui-key-ready true))
+    (when (and pressed? @ui-key-ready (not (ignored-modifiers keyword)))
+      (reset! ui-key-ready false)
+      {:keyword keyword
+       :raw (q/raw-key)
+       :key-code (q/key-code)})))
+
+(defn begin-save-flow []
+  (reset! saving-score? true)
+  (reset! name-entry "")
+  (reset! save-message nil))
+
+(defn handle-name-input [key-event]
+  (when key-event
+    (let [{:keys [keyword raw key-code]} key-event
+          raw-char (when raw (char raw))
+          left-ctrl? (or (= keyword :control)
+                         (= key-code java.awt.event.KeyEvent/VK_CONTROL)
+                         (= raw java.awt.event.KeyEvent/VK_CONTROL))
+          alt-exit? (or (= keyword :alt)
+                        (= key-code java.awt.event.KeyEvent/VK_ALT)
+                        (= raw java.awt.event.KeyEvent/VK_ALT))
+          enter? (or (= keyword :enter) (= keyword :return))]
+      (cond
+        (or left-ctrl? enter?)
+        (let [trimmed (-> @name-entry str/trim)]
+          (when (seq trimmed)
+            (save-score! trimmed @score)
+            (refresh-leaderboard!)
+            (reset! save-message "Score saved!")
+            (reset! saving-score? false)
+            (reset! name-entry "")))
+
+        alt-exit?
+        (do (reset! saving-score? false)
+            (reset! name-entry "")
+            (reset! save-message "Save canceled"))
+
+        (= keyword :backspace)
+        (swap! name-entry #(if (seq %) (subs % 0 (dec (count %))) ""))
+
+        (and raw-char (or (Character/isLetterOrDigit raw-char) (= raw-char \space)))
+        (when (< (count @name-entry) 12)
+          (swap! name-entry str raw-char))))))
 
 (defn setup []
   ; Set frame rate to 30 frames per second.
   (q/frame-rate 60)
   ; Set color mode to HSB (HSV) instead of default RGB.
   (q/color-mode :hsb)
+  (ensure-db!)
   (let [; create url to load image 100x100
         url "bird.png"]
     (q/set-state! :image (q/load-image url))))
@@ -50,7 +133,10 @@
   (reset! key-pressed-trigger true)
   (reset! player {:x (/ screen-sizeX 3) :y (/ screen-sizeY 3) :vx 0 :vy 0})
   (reset! obstacles [])
-  (reset! menu-time 0))
+  (reset! menu-time 0)
+  (reset! saving-score? false)
+  (reset! name-entry "")
+  (reset! save-message nil))
 
 (defn clamp-to-top []
   (when (< (:y @player) 0)
@@ -63,19 +149,24 @@
         dy (- cy closest-y)]
     (<= (+ (* dx dx) (* dy dy)) (* r r))))
 
-(defn handle-menu-state []
+(defn handle-menu-state [key-event]
   (swap! menu-time + 0.1)
   (let [base (/ screen-sizeY 3)
         bob (+ base (* menu-bob-amplitude (Math/sin @menu-time)))]
     (swap! player assoc :y bob :vy 0))
-  (when (q/key-pressed?)
-    (let [key (q/key-as-keyword)]
-      (cond
-        (= key :space) (do (reset-game)
-                           (reset! menu-active false))
-        (= key :escape) (q/exit)))))
+  (when key-event
+    (case (:keyword key-event)
+      :space (do (reset-game)
+                 (reset! menu-active false))
+      :l (do (swap! leaderboard-open not)
+             (when @leaderboard-open (refresh-leaderboard!)))
+      :escape (q/exit)
+      nil)))
 
-(defn handle-game-state []
+(defn handle-game-state [key-event]
+  (when @saving-score?
+    (handle-name-input key-event))
+
   (let [x (:x @player)
         y (:y @player)
         vy (:vy @player)]
@@ -102,11 +193,12 @@
     (swap! obstacles #(mapv (fn [param1] (update param1 :x - obstacle-speed)) %)))
 
   (when (= @game-over true)
-    (let [key (q/key-as-keyword)]
-      (when (#{:r :right :up :down} key)
-        (case key
-          :r (reset-game)
-          nil))))
+    (when (and key-event (= (:keyword key-event) :s) (not @saving-score?))
+      (begin-save-flow))
+    (when (and key-event (#{:r :right :up :down} (:keyword key-event)) (not @saving-score?))
+      (case (:keyword key-event)
+        :r (reset-game)
+        nil)))
 
   (doseq [m @obstacles]
     (let [x (:x @player)
@@ -137,20 +229,38 @@
 
   (swap! obstacles #(filter (fn [param1] (>= (:x param1) (- 0 box-sizeX))) %))
 
-  (def filtered-obstacle (first (filter #(> (:x %) (:x @player)) @obstacles)))
-  (when (and filtered-obstacle (< (:x filtered-obstacle) (+ (:x @player) 1)))
-    (swap! score + 1))
+  (let [filtered-obstacle (first (filter #(> (:x %) (:x @player)) @obstacles))]
+    (when (and filtered-obstacle (< (:x filtered-obstacle) (+ (:x @player) 1)))
+      (swap! score + 1)))
 
   (reset! player-rotation 0)
 
-  (when (= (q/key-as-keyword) :escape)
+  (when (and (= (q/key-as-keyword) :escape) (not @saving-score?))
     (q/exit)))
 
 (defn update-state []
-  (if @menu-active
-    (handle-menu-state)
-    (handle-game-state)))
+  (let [key-event (poll-key)]
+    (if @menu-active
+      (handle-menu-state key-event)
+      (handle-game-state key-event))))
 
+
+(defn draw-leaderboard []
+  (q/no-stroke)
+  (q/fill 0 0 255 230)
+  (q/rect 80 40 (- screen-sizeX 160) (- screen-sizeY 80) 20)
+  (q/fill 0)
+  (q/text-align :center :top)
+  (q/text-size 50)
+  (q/text "Leaderboard" (/ screen-sizeX 2) 80)
+  (q/text-size 28)
+  (doseq [[idx row] (map-indexed vector @leaderboard-data)]
+    (let [{:keys [name score]} row
+          y (+ 140 (* idx 30))
+          line (format "%2d. %-12s %5d" (inc idx) name score)]
+      (q/text line (/ screen-sizeX 2) y)))
+  (q/text-size 20)
+  (q/text "Press L to close" (/ screen-sizeX 2) (+ 140 (* 10 30) 20)))
 
 (defn draw-state []
   (q/background 240)
@@ -171,13 +281,16 @@
     (q/fill 0)
     (q/text-size 40)
     (q/text-align :center :center)
-    (q/text "Press R to Restart" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 80)))
+    (q/text "Press R to Restart" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 80))
+    (q/text "Press S to Save" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 120)))
 
   (let [im (q/state :image)]
     (when (q/loaded? im)
       (q/push-matrix)
       (q/image-mode :corners)
-      (q/image im (:x @player) (:y @player) (+ (:x @player) box-sizeX) (+ (:y @player) box-sizeX))
+      (q/image im
+               (:x @player) (:y @player)
+               (+ (:x @player) box-sizeX) (+ (:y @player) box-sizeY))
       (q/pop-matrix)))
 
   (when @menu-active
@@ -188,10 +301,33 @@
     (q/text-size 40)
     (q/text "Press Start (Space Bar)" (/ screen-sizeX 2) (+ (/ screen-sizeY 3) 80))
     (q/text-size 30)
-    (q/text "Press Esc to Exit" (/ screen-sizeX 2) (+ (/ screen-sizeY 3) 130))))
+    (q/text "Press L for Leaderboard" (/ screen-sizeX 2) (+ (/ screen-sizeY 3) 125))
+    (q/text "Press Esc to Exit" (/ screen-sizeX 2) (+ (/ screen-sizeY 3) 170)))
+
+  (when (and @menu-active @leaderboard-open)
+    (draw-leaderboard))
+
+  (when (and @game-over @saving-score?)
+    (q/no-stroke)
+    (q/fill 0 0 255 230)
+    (q/rect 150 200 (- screen-sizeX 300) 220 20)
+    (q/fill 0)
+    (q/text-align :center :center)
+    (q/text-size 36)
+    (q/text "Enter your name:" (/ screen-sizeX 2) (- (/ screen-sizeY 2) 60))
+    (q/text-size 30)
+    (q/text (str @name-entry (if (< (mod (q/frame-count) 60) 30) "_" ""))
+            (/ screen-sizeX 2) (- (/ screen-sizeY 2) 20))
+    (q/text-size 20)
+    (q/text "Press Left Ctrl or Enter to save, Left Alt to cancel" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 20)))
+
+  (when @save-message
+    (q/fill 0)
+    (q/text-align :center :center)
+    (q/text-size 24)
+    (q/text @save-message (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 170))))
 
 ; b1
-
 
 
 (defn -main []
@@ -202,3 +338,12 @@
                :update update-state
                :draw draw-state
                :features [:keep-on-top]))
+
+
+
+
+
+
+
+
+
