@@ -38,3 +38,6 @@ In Game: Tap/hold a key (e.g., Space) to flap upward
 Game Over: R to restart, S to save score, M to return to menu  
 Saving: Type name (12 chars max); Ctrl saves, Alt cancels; saves go to `resources/scores.db`  
 Leaderboard: Press L from the menu to view the top scores (local only)  
+
+![Gameplay](screenshots/ss1.png)
+![Menu](screenshots/ss2.png)
