@@ -121,7 +121,7 @@
           (swap! name-entry str raw-char))))))
 
 (defn setup []
-  ; Set frame rate to 30 frames per second.
+  ; Set frame rate.
   (q/frame-rate 60)
   ; Set color mode to HSB (HSV) instead of default RGB.
   (q/color-mode :hsb)
@@ -337,7 +337,6 @@
     (q/text-size 24)
     (q/text @save-message (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 170))))
 
-; b1
 
 
 (defn -main []
