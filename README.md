@@ -4,7 +4,7 @@
 - Requirements: Java 11+, Leiningen 2.x.
 - From the project root: `lein run`
 - REPL: `lein repl`, then `(require 'game-project.core)` and `(-main)`.
-- Assets (bird.png, bg_5.png) are loaded from the repo root/resources; run from project root so paths resolve.
+- Assets (bird.png) are loaded from the repo root/resources; run from project root so paths resolve.
 
 ### DATABASE CONNECTION ###
 - Uses SQLite at `resources/scores.db`; `ensure-db!` creates the `scores` table on first run.
@@ -38,3 +38,6 @@ In Game: Tap/hold a key (e.g., Space) to flap upward
 Game Over: R to restart, S to save score, M to return to menu  
 Saving: Type name (12 chars max); Ctrl saves, Alt cancels; saves go to `resources/scores.db`  
 Leaderboard: Press L from the menu to view the top scores (local only)  
+
+![Gameplay](screenshots/ss1.png)
+![Menu](screenshots/ss2.png)

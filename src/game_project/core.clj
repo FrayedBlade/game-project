@@ -329,7 +329,7 @@
     (q/text (str @name-entry (if (< (mod (q/frame-count) 60) 30) "_" ""))
             (/ screen-sizeX 2) (- (/ screen-sizeY 2) 20))
     (q/text-size 20)
-    (q/text "Press Left Ctrl or Enter to save, Left Alt to cancel" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 20)))
+    (q/text "Press Left Ctrl to save, Left Alt to cancel" (/ screen-sizeX 2) (+ (/ screen-sizeY 2) 20)))
 
   (when @save-message
     (q/fill 0)
