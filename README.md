@@ -4,7 +4,7 @@
 - Requirements: Java 11+, Leiningen 2.x.
 - From the project root: `lein run`
 - REPL: `lein repl`, then `(require 'game-project.core)` and `(-main)`.
-- Assets (bird.png, bg_5.png) are loaded from the repo root/resources; run from project root so paths resolve.
+- Assets (bird.png) are loaded from the repo root/resources; run from project root so paths resolve.
 
 ### DATABASE CONNECTION ###
 - Uses SQLite at `resources/scores.db`; `ensure-db!` creates the `scores` table on first run.
