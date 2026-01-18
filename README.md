@@ -39,5 +39,14 @@ Game Over: R to restart, S to save score, M to return to menu
 Saving: Type name (12 chars max); Ctrl saves, Alt cancels; saves go to `resources/scores.db`  
 Leaderboard: Press L from the menu to view the top scores (local only)  
 
+### SOURCES ###
+- Clojure for the Brave and True: Learn the Ultimate Language and Become a Better Programmer: Higginbotham Daniel
+- http://quil.info/api
+- https://github.com/uncomplicate/neanderthal/tree/master
+- https://wiki.planetchili.net/index.php/Beginner_C%2B%2B_Game_Programming_Series (Good for learning game logic)
+- https://github.com/vaskee001/cljinvaders
+- https://cljdoc.org/d/com.github.seancorfield/next.jdbc/1.3.1086/doc/getting-started
+- https://www.pngegg.com/en/png-nghbg
+
 ![Gameplay](screenshots/ss1.png)
 ![Menu](screenshots/ss2.png)
